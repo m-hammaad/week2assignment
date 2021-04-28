@@ -1,38 +1,66 @@
 ---
-title: "siegenmap"
+title: "April 28, 2021"
 knit: (function(input_file, encoding) {
   out_dir <- 'docs';
   rmarkdown::render(input_file,
  encoding=encoding,
  output_file=file.path(dirname(input_file), out_dir, 'index.html'))})
-author: "Hammad"
-date: "4/28/2021"
+author: ""
+date: ""
 output: html_document
 ---
-
-
-
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## R Markdown
+### An interactive map of Siegen, Germany with 5km ,10km , 15km radius rings.
+```{r include=FALSE}
+library(leaflet)
+library(sf)
+library(dplyr)
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+Multiring <- function(x,n,d){
+    #observer()
+    buffers <- list(); names <- list(); nd <- d
+    for (i in 1:n){
+      buffers[[i]] <- st_as_sf(st_union(st_buffer(x,nd)))
+      buffers[[i]]$ID <- paste0("Buffer ", round(nd/1000,1), " km")
+      nd <- nd+d
+    }
+    
+    jlayers <- function(x){ 
+      if (length(x)==1){ 
+        # if length is == 1 , return 1 layer 
+        xm <- x[[1]] 
+      } else { 
+        for (i in 1:(length(x)-1)){ 
+          if(i==1){xm <- x[[1]]} 
+          xm <- rbind(xm, x[[i+1]]) 
+        } 
+      } 
+      return(xm) 
+    }
+    
+    return(jlayers(buffers))
+  }
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+coords <- c(8.01379, 50.87827)
+    pnt <- st_point(c(coords[1], coords[2]))
+    geom <- st_sfc(pnt, crs = 4326)
+    df <- data.frame(name = 'Siegen')
+    sfobj <- st_sf(df, geometry = geom)
+    sfobj <- st_transform(sfobj, crs = 4839)
+    radius <- as.numeric('5')*1000
+    return <- Multiring(sfobj, 3, radius)
+    return2 <- st_transform(return, crs = 4326)
+    lat = coords[2]
+    lon = coords[1]
+```   
 
-```{r cars}
-summary(cars)
+```{r echo=FALSE}   
+leaflet(return2, options = leafletOptions(zoomControl = FALSE,attributionControl=FALSE)) %>% 
+        addTiles() %>% addPolygons(color = 'red', weight = 2, fillOpacity = 0.1) 
+        
 ```
-
-## Including Plots
-
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
-```
-
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+Source: Own calculation; background map: © OpenStreetMap contributors
